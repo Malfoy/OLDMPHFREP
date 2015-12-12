@@ -34,7 +34,7 @@ int main(int argc, char ** argv){
 			}
 			kmers={};
 
-			for(uint i(0);i<Nelement;++i){
+			for(uint i(0);i<Ncase;++i){
 				if(map[i].size()>1){
 					for(uint j(0);j<map[i].size();++j){
 						kmers.push_back(map[i][j]);
