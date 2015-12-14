@@ -26,5 +26,6 @@ minimizer getEnd(minimizer kmer, uint n);
 minimizer getBegin(minimizer kmer, uint n);
 string randomSeq(uint length);
 minimizer seq2intStranded(const string& seq);
+uint nbits(uint H);
 
 #endif

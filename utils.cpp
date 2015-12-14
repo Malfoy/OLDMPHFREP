@@ -180,6 +180,30 @@ return 'X';
 }
 
 
+uint nbits(uint H){
+	switch(H){
+		case 1:
+			return 1;
+		case 3:
+			return 2;
+		case 7:
+			return 3;
+		case 15:
+			return 4;
+		case 31:
+			return 5;
+		case 63:
+			return 6;
+		case 127:
+			return 7;
+		case 255:
+			return 8;
+	}
+	cout<<"oups"<<endl;
+	return 0;
+}
+
+
 void int2seq(minimizer min, uint n){
 	string res;
 	uint nuc;
