@@ -1,26 +1,36 @@
 #include "utils.h"
 #include "xor.h"
 #include <fstream>
+#include <cstring>
 
 
 
 using namespace std;
 
 
-
+// cmdline: ./bmean [<genome.fasta>] [--xxhash]
 int main(int argc, char ** argv){
 	srand (time(NULL));
 	uint Nelement(1*1000*1000);
+    double unplaced_tolerance(0.02); // (corresponds to 2%); used to be 0.1%
 	// double gamma(2);
 	// uint Ncase(gamma*Nelement);
 	uint k(31);
-	double minbitsbyelts(3);
+	double minbitsbyelts(5);
 	// cout<<"gamma :"<<gamma<<endl;
 	vector<uint64_t> originalkmers(Nelement);
+    string genome = "";
+    if (argc>1 && argv[1][0] != '-') { // whether a genome is passed as the 1st argument
+        genome = loadGenome(string(argv[1]));
+        if (genome.size() < Nelement-k+1) { cout << "not enough genomic kmers in " << string(argv[1]) << endl; exit(1);}
+    }
+    int hashmode = 0;
+    for (int i = 1; i < argc; i++)
+        if (strcmp(argv[i],"--xxhash")==0) { cout << "using xxhash" << endl; hashmode = 1; }
 	for(uint i(0);i<Nelement;++i){
-		originalkmers[i]=(getRepresent(seq2intStranded(randomSeq(k)),k));
+        string seq = genome.size() > 0 ? genomeKmer(genome,i,k) : randomSeq(k);
+		originalkmers[i]=(getRepresent(seq2intStranded(seq),k));
 	}
-
 
 	// for(uint H(2);H<257;H*=2){
 	// 	vector<uint64_t> kmers=originalkmers;
@@ -54,7 +64,7 @@ int main(int argc, char ** argv){
 					elts+=Ncase;
 					for(uint n(0);n<H-1;++n){
 						for(uint i(0);i<kmers.size();++i){
-							uint64_t h(iterHash64(kmers[i],n)%Ncase);
+							uint64_t h(iterHash64(kmers[i],n,hashmode)%Ncase);
 							// cout<<h<<endl;
 							map[h].push_back(kmers[i]);
 						}
@@ -69,13 +79,13 @@ int main(int argc, char ** argv){
 						}
 					}
 				}
-				if((double)elts*nbits(H-1)/Nelement<minbitsbyelts and (double)1000*kmers.size()/Nelement<1){
+				if((double)elts*nbits(H-1)/Nelement<minbitsbyelts and kmers.size()<unplaced_tolerance*Nelement){
 					cout
 						<<"Gamma: "<<gamma
-						<<" H: "<<H-1
-						<<" P: "<<P
-						<<" Bits/elts: "<<(double)elts*nbits(H-1)/Nelement
-						<<" % Unplaced element:   "<<(double)100*kmers.size()/Nelement<<" %"<<endl;
+						<<"\tH: "<<H-1
+						<<"\tP: "<<P
+						<<"\tBits/elts: "<<(double)elts*nbits(H-1)/Nelement
+						<<"\t% Unplaced element:   "<<(double)100*kmers.size()/Nelement<<" %"<<endl;
 					}
 
 			}

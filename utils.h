@@ -27,5 +27,7 @@ minimizer getBegin(minimizer kmer, uint n);
 string randomSeq(uint length);
 minimizer seq2intStranded(const string& seq);
 uint nbits(uint H);
+string genomeKmer(string genome, uint position, uint length);
+string loadGenome(string file);
 
 #endif

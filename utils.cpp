@@ -38,6 +38,16 @@ string randomSeq(uint length){
 	return str;
 }
 
+string loadGenome(string file)
+{
+    return getReads(file,1)[0];
+}
+
+string genomeKmer(string genome, uint position, uint length){
+	return genome.substr(position,length);
+}
+
+
 
 //TODO:addinsertion deletion
 string mutate(string read,int n){
