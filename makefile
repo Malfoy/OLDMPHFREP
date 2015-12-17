@@ -19,7 +19,7 @@ EXEC=bmean
 
 all: $(EXEC)
 
-bmean:   main.o  utils.o xor.o
+bmean:   main.o  utils.o xor.o xxhash.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 main.o: main.cpp   utils.h
@@ -28,8 +28,10 @@ main.o: main.cpp   utils.h
 utils.o: utils.cpp utils.h
 	$(CC) -o $@ -c $< $(CFLAGS)
 
+xhash.o: xxhash.c xxhash.h
+	$(CC) -o $@ -c $< $(CFLAGS)
 
-xor.o: xor.cpp xor.h
+xor.o: xor.cpp xor.h xxhash.h
 	$(CC) -o $@ -c $< $(CFLAGS)
 
 clean:

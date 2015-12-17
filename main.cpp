@@ -14,7 +14,7 @@ int main(int argc, char ** argv){
 	// double gamma(2);
 	// uint Ncase(gamma*Nelement);
 	uint k(31);
-	double minbitsbyelts(4);
+	double minbitsbyelts(3);
 	// cout<<"gamma :"<<gamma<<endl;
 	vector<uint64_t> originalkmers(Nelement);
 	for(uint i(0);i<Nelement;++i){
@@ -43,9 +43,9 @@ int main(int argc, char ** argv){
 	// 	cout<<"Number of hash function:    "<<H-1<<endl;
 	// 	cout<<"Percent Unplaced element:  "<<(double)100*kmers.size()/Nelement<<" %"<<endl<<endl;
 	// }
-	for(double gamma(1);gamma<=4;gamma+=0.2){
-		for(uint P(1);P<=20;P*=2){
-			for(uint H(2);H<33;H*=2){
+	for(double gamma(0.8);gamma<=4;gamma+=0.2){
+		for(uint P(1);P<=40;P*=2){
+			for(uint H(2);H<3;H*=2){
 				vector<uint64_t> kmers=originalkmers;
 				uint elts(0);
 				for(uint phase(0); phase<P;++phase){

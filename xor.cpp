@@ -1,6 +1,7 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "xxhash.h"
 // #include <iostream>
 
 
@@ -115,8 +116,11 @@ uint64_t hash64( uint64_t u ){
 uint64_t iterHash64( uint64_t u , int n){
 	if(n==0){
 		return hash64(u);
+		return XXH64(&u,8,69);
 	}
 	else{
 		return hash64(iterHash64(u, n-1));
+		uint64_t i(iterHash64(u, n-1));
+		return XXH64(&i,8,69);
 	}
 }
