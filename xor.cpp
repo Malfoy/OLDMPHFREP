@@ -1,8 +1,9 @@
 #include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <functional> // for std::hash
 #include "xxhash.h"
-// #include <iostream>
+ #include <iostream>
 
 
 uint32_t xor32(uint32_t y){
@@ -95,7 +96,6 @@ uint64_t korenXor(uint64_t x){
 
 
 uint64_t hash64( uint64_t u ){
-	return xorshift64(u);
 	return korenXor(u);
 	// return murmur3_32(u, 69);
 	uint64_t v = u * 3935559000370003845 + 2691343689449507681;
@@ -112,15 +112,22 @@ uint64_t hash64( uint64_t u ){
 	return v;
 }
 
+std::hash<unsigned long long> ull_std_hasher;
 
-uint64_t iterHash64( uint64_t u , int n){
-	if(n==0){
-		return hash64(u);
-		return XXH64(&u,8,69);
-	}
-	else{
-		return hash64(iterHash64(u, n-1));
-		uint64_t i(iterHash64(u, n-1));
-		return XXH64(&i,8,69);
+uint64_t iterHash64( uint64_t u , int n, int mode=0){
+    // mode = 0: 
+    if(n==0){
+        switch (mode){
+            case 1: return XXH64(&u,8,69);
+            case 2: return ull_std_hasher((unsigned long long)u); 
+            default: return xorshift64(u);
+        }
+    }
+    else{
+        switch (mode){
+            case 1:  return XXH64(&u,8,n);
+            case 2:  return ull_std_hasher((unsigned long long)iterHash64(u, n-1, mode)); 
+            default:		return xorshift64(iterHash64(u, n-1, mode));
+        }
 	}
 }
