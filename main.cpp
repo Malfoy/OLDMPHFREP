@@ -3,14 +3,379 @@
 #include <fstream>
 #include <cstring>
 #include <unordered_set>
+#include <algorithm>    // std::count
+
 
 
 
 using namespace std;
 
 
+
+void nadine(const double gamma, const uint Count, uint H=1, uint P=1){
+	//RANDOM SET CREATION
+	//~ cout<<gamma<<" "<<Count<<endl;
+	for(H=2;H<100;H++){
+		for(P=H/2;P<=H;P+=1){
+		uint Nelement(1*10*1000);
+		vector<uint64_t> originalkmers(Nelement);
+		uint k(31);
+		string seq;
+		//~ uint P(1);
+		for(uint i(0);i<Nelement;++i){
+			seq = randomSeq(k);
+			originalkmers[i]=(getRepresent(seq2intStranded(seq),k));
+		}
+		unordered_set<uint64_t> set;
+		for(uint i(0);i<Nelement;++i){
+			set.insert(originalkmers[i]);
+		}
+		int hashmode = 0;
+		uint nBitUsed(0);
+		vector<uint64_t> kmers=originalkmers;
+		
+		vector<vector<bool>> approxSet;
+		
+		//~ cout<<1<<endl;
+		//BUILDING THE GBF
+		for(uint setNumber(0);setNumber<H;++setNumber){
+			uint casesNumber(kmers.size()*gamma);
+			vector<uint8_t> counting(casesNumber,0);
+			for(uint i(0);i<kmers.size();++i){
+				uint64_t h(iterHash64(kmers[i],setNumber,hashmode)%casesNumber);
+				++counting[h];
+			}
+			vector<uint64_t> unplaced;
+			vector<bool> bitSet(casesNumber,false);
+			for(uint i(0);i<kmers.size();++i){
+				uint64_t h(iterHash64(kmers[i],setNumber,hashmode)%casesNumber);
+				if(counting[h]<Count){
+					unplaced.push_back(kmers[i]);
+				}else{
+					bitSet[h]=true;
+				}
+			}
+			//~ kmers=unplaced;
+			approxSet.push_back(bitSet);
+		}
+		
+		//~ cout<<2<<endl;
+		//ESTIMATING FALSE POSITIVE
+		uint FP(0);
+		for(uint test(0);test<Nelement;){
+			seq = randomSeq(k);
+			uint64_t kmer(getRepresent(seq2intStranded(seq),k));
+			if(set.count(kmer)==0){
+				++test;
+				uint vote(0);
+				for(uint setNumber(0);setNumber<H;++setNumber){
+					if(approxSet[setNumber].size()!=0){
+						uint64_t h(iterHash64(kmer,setNumber,hashmode)%approxSet[setNumber].size());
+						if(approxSet[setNumber][h]){
+							++vote;
+						}
+					}
+				}
+				if(vote>=P){
+					FP++;
+				}
+			}
+		}
+		
+		//~ cout<<3<<endl;
+		//ESTIMATING FALSE NEGATIVE
+		uint TP(0),FN(0);
+		for(uint i(0);i<Nelement;++i){
+			uint64_t kmer(originalkmers[i]);
+			uint vote(0);
+			for(uint setNumber(0);setNumber<H;++setNumber){
+				if(approxSet[setNumber].size()!=0){
+					uint64_t h(iterHash64(kmer,setNumber,hashmode)%approxSet[setNumber].size());
+					if(approxSet[setNumber][h]){
+						++vote;
+					}
+				}
+			}
+			if(vote<P){
+				++FN;
+			}
+		}
+		
+		//~ cout<<4<<endl;
+		//NUMBER OF ONE CHEKING FOR ENTROPY
+		uint one(0),totalbit(0);
+		for(uint setNumber(0);setNumber<H;++setNumber){
+			//~ for(uint test(0);test<Nelement;){
+				for(uint i(0);i<approxSet[setNumber].size();++i){
+					if(approxSet[setNumber][i]){
+						one++;
+					}
+					++totalbit;	
+				}
+			//~ }
+		}
+		double FPrate((double)FP/Nelement),FNrate((double)FN/Nelement), FPMax(0.01),FNMax(0.01);
+		if(FPrate<FPMax and ((double)gamma*Nelement*H/Nelement+FNrate*10) <12){
+			cout<<"P: "<<P<<endl;
+			cout<<"H: "<<H<<endl;
+			cout<<"Count: "<<Count<<endl;
+			cout<<"bit to 1 in the sets: "<<(double)one/totalbit<<endl;
+			//~ cout<<"unplaced element rate: "<<(double)kmers.size()/Nelement<<endl;
+			//~ cout<<"bit used: "<<gamma*Nelement*H <<endl;
+			cout<<"bit/element: "<<((double)gamma*Nelement*H/Nelement)+FNrate*10<<endl;
+			cout<<"FP rate: "<<((double)FP/Nelement)<<endl;
+			//~ cout<<FP<<" "<<Nelement<<endl;
+			cout<<"FN rate: "<<(double)FN/Nelement<<endl;
+			cout<<endl;
+			//~ return;
+		}
+	}
+	}
+}
+
+	
+
 // cmdline: ./bmean [<genome.fasta>] [--xxhash]
 int main(int argc, char ** argv){
+	srand (time(NULL));
+	double gamma(1.4);
+	uint Count(1);
+	//~ cout<<"count: "<<Count<<endl;
+	//~ nadine(gamma,Count);
+	
+	//~ gamma=0.59;
+	//~ Count=2;
+	//~ nadine(gamma,Count);
+	
+		//~ gamma=0.37;
+		//~ Count=3;
+		//~ nadine(gamma,Count);
+		
+		//~ gamma=0.21;
+		//~ Count=5;
+		//~ nadine(gamma,Count);
+	
+	//~ gamma=0.103;
+	//~ Count=10;
+	//~ nadine(gamma,Count);
+	
+	gamma=0.051;
+	Count=20;
+	nadine(gamma,Count);
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	/*
+	srand (time(NULL));
+	uint Nelement(1*1000*1000);
+	vector<uint64_t> originalkmers(Nelement);
+	uint k(31);
+	string seq;
+	for(uint i(0);i<Nelement;++i){
+		seq = randomSeq(k);
+		originalkmers[i]=(getRepresent(seq2intStranded(seq),k));
+	}
+	unordered_set<uint64_t> set;
+	for(uint i(0);i<Nelement;++i){
+		set.insert(originalkmers[i]);
+	}
+	
+	uint nbSet(256);
+	uint finger(8);
+	uint hashSize(16);
+	uint hashMax(256*256);	
+	for(uint H(1);H<=1;H*=2){
+		cout<<"H: "<<H<<endl;
+		double gamma(1);
+		int hashmode(0);
+		vector<vector<uint8_t>> setSet(256);
+		vector<vector<bool>> setBool(256);
+		vector<vector<uint64_t>> buckets(256);
+		vector<uint64_t> unplaced;
+		cout<<1<<endl;
+		//foreach element
+		for(uint i(0);i<Nelement;++i){
+			uint64_t kmer(originalkmers[i]);
+			//~ bool placed=false;
+			for(uint ii(0);ii<H;++ii){
+				uint64_t h(iterHash64(kmer,0,hashmode)%hashMax);
+				buckets[h/256].push_back(kmer);
+			}
+		}
+		for(uint i(0);i<256;++i){
+			cout<<buckets[i].size()<<endl;
+		}
+		cout<<2<<endl;
+		
+		for(uint i(0); i<256;++i){
+			setBool[i]=vector<bool>(buckets[i].size()*gamma,false);
+			setSet[i]=vector<uint8_t>(buckets[i].size()*gamma,0);
+			for(uint j(0);j<buckets[i].size();++j){
+				uint64_t kmer(buckets[i][j]);
+				uint64_t h(iterHash64(kmer,0,hashmode)%hashMax);
+				uint hpos(iterHash64(kmer,1,hashmode)%setSet[i].size());
+				if(setBool[i][hpos]==false){
+					setSet[i][hpos]=h%256;
+					setBool[i][hpos]=true;
+				}else{
+					unplaced.push_back(kmer);
+				}
+			}
+		}
+		
+		cout<<100*(double)unplaced.size()/Nelement<<"%"<<endl;
+		
+		uint test(0);
+		uint FP(0);
+		while(test<Nelement){
+			seq = randomSeq(k);
+			uint64_t kmer(getRepresent(seq2intStranded(seq),k));
+			if(set.count(kmer)==0){
+				++test;
+				uint64_t h(iterHash64(kmer,0,hashmode)%hashMax);
+				uint hpos(iterHash64(kmer,1,hashmode)%setSet[h/256].size());
+				if(setBool[h/256][hpos]==true and setSet[h/256][hpos]==h%256){
+					++FP;
+					goto lol2;
+				}
+			}
+			lol2:;
+		}
+		cout<<FP<<endl;
+		//~ cout<<test<<endl;
+		cout<<(double)(1000*FP)/(double)test<<endl;
+	}
+	/*
+	srand (time(NULL));
+	uint Nelement(1*100*1000);
+	vector<uint64_t> originalkmers(Nelement);
+	uint k(31);
+	string seq;
+	for(uint i(0);i<Nelement;++i){
+		seq = randomSeq(k);
+		originalkmers[i]=(getRepresent(seq2intStranded(seq),k));
+	}
+	unordered_set<uint64_t> set;
+	for(uint i(0);i<Nelement;++i){
+		set.insert(originalkmers[i]);
+	}
+	double gamma(1);
+	int hashmode(0);
+
+	uint nbBloom(1),H(1),casesNumber(gamma*Nelement);
+	vector<vector<bool>> blooms;
+	for(uint i(0);i<nbBloom;++i){
+		vector<bool> lol(casesNumber,false);
+		blooms.push_back(lol);
+	}
+	uint offset(0);
+	
+	//foreach element
+	for(uint i(0);i<Nelement;++i){
+		uint64_t kmer(originalkmers[i]);
+		uint minchangeRequired(H+1);
+		uint selectedBloom(nbBloom+1);
+		//foreach bloom filter
+		for(uint bloomNumber(0);bloomNumber<nbBloom;++bloomNumber){
+			//~ cout<<"bloom: "<<bloomNumber<<endl;
+			uint changeRequired(0);
+			//forech hash function
+			for(uint hashnumber(0);hashnumber<H;++hashnumber){
+				uint64_t h(iterHash64(kmer,hashnumber+H*(bloomNumber+offset)%nbBloom,hashmode)%casesNumber);=++
+				//~ cout<<hashnumber+H*bloomNumber<<endl;
+				//~ cout<<h<<endl;
+				if(not blooms[(bloomNumber+offset)%nbBloom][h]){
+					++changeRequired;
+				}
+			}
+			if(changeRequired<minchangeRequired){
+				//~ if(changeRequired<H){
+					//~ cout<<"lol"<<endl;
+				//~ }
+				minchangeRequired=changeRequired;
+				selectedBloom=(bloomNumber+offset)%nbBloom;
+			}
+		}
+		//~ cout<<
+		for(uint hashnumber(0);hashnumber<H;++hashnumber){
+			uint64_t h(iterHash64(kmer,hashnumber+H*selectedBloom,hashmode)%casesNumber);
+			blooms[selectedBloom][h]=true;
+		}
+		offset++;
+	}
+	
+	uint FP(0);
+	for(uint test(0);test<Nelement;){
+		seq = randomSeq(k);
+		uint64_t kmer(getRepresent(seq2intStranded(seq),k));
+		if(set.count(kmer)==0){
+			++test;
+			for(uint ii(0);ii<nbBloom;++ii){
+				uint hit(0);
+				for(uint iii(0);iii<H;++iii){
+					uint64_t h(iterHash64(kmer,iii+H*ii,hashmode)%casesNumber);
+					if(blooms[ii][h]){
+						++hit;
+					}
+				}
+				if(hit==H){
+					++FP;
+					goto lol2;
+				}
+			}
+		}
+		lol2:;
+	}
+	for(uint i(0);i<nbBloom;++i){
+		cout<<count (blooms[i].begin(),blooms[i].end(), true)<<endl;
+	}
+	
+	cout<<"H: "<<H<<endl;
+	cout<<"nb Bloom: "<<nbBloom<<endl;
+	cout<<"bit used: "<<casesNumber*nbBloom<<endl;
+	cout<<"bit/element: "<<((double)casesNumber*nbBloom/Nelement)<<endl;
+	cout<<"FP rate: "<<((double)FP/Nelement)<<endl;
+	//~ cout<<FP<<" "<<Nelement<<endl;
+	//~ cout<<"FN: "<<FN-kmers.size()<<endl;
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	srand (time(NULL));
 	uint Nelement(1*1000*100);
 	vector<uint64_t> originalkmers(Nelement);
@@ -25,8 +390,8 @@ int main(int argc, char ** argv){
 	for(uint i(0);i<Nelement;++i){
 		set.insert(originalkmers[i]);
 	}
-	double gamma(0.5);
-	uint count(3);
+	double gamma(2);
+	uint count(2);
 	int hashmode = 0;
 	uint nBitUsed(0);
 	vector<uint64_t> kmers=originalkmers;
@@ -264,6 +629,6 @@ int main(int argc, char ** argv){
 
 
 
-
+*/
 	return 0;
 }
