@@ -306,7 +306,7 @@ void nadine(const double gamma, const uint Count, uint H,uint expectedSizeBucket
 // cmdline: ./bmean [<genome.fasta	xxhash]
 int main(int argc, char ** argv){
 	srand (time(NULL));
-	double gamma(1.2);
+	double gamma(1);
 	uint Count(1);
 	uint lolmin(80);
 	uint lolmax(80);
