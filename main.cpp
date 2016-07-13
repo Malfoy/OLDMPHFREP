@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <algorithm>    // std::count
 #include <math.h>
+#include <chrono>
 
 
 
@@ -13,8 +14,8 @@ using namespace std;
 
 
 
-void nadine(const double gamma, const uint Count, uint H,uint expectedSizeBucket,uint Nessai){
-	
+double nadine(const double gamma, const double coefMin, uint H,uint expectedSizeBucket,uint Nessai){
+	auto startChrono=chrono::system_clock::now();
 	uint Nelement(1*100*1000);
 	uint minSizeBucket(Nelement);
 	uint maxSizeBucket(0);
@@ -36,13 +37,12 @@ void nadine(const double gamma, const uint Count, uint H,uint expectedSizeBucket
 	
 	vector<vector<bool>> finalStruct(Buckets.size());
 	vector<uint> HashUsed(Buckets.size());
-	int hashmode = 0;
-	uint nBitUsed(0);
+	int hashmode = 3;
 	for(uint i(0);i<Nelement;++i){
 		uint64_t h(iterHash64(originalkmers[i],0,hashmode)%Buckets.size());
 		Buckets[h].push_back(originalkmers[i]);
 	}
-	cout<<"element distribued"<<endl;
+	//~ cout<<"element distribued"<<endl;
 	
 	for(uint subSetNumber(0);subSetNumber<Buckets.size();++subSetNumber){
 		vector<uint64_t> kmers=Buckets[subSetNumber];
@@ -56,7 +56,7 @@ void nadine(const double gamma, const uint Count, uint H,uint expectedSizeBucket
 		uint minOne(kmers.size()*gamma);
 		
 		for(uint essai(1);essai<=Nessai;++essai){
-			vector<bool> approxSet(10*gamma*(kmers.size()/10),false);
+			vector<bool> approxSet(gamma*expectedSizeBucket,false);
 			for(uint i(0);i<kmers.size();++i){
 				for(uint hashNumber(0);hashNumber<H;++hashNumber){
 					uint64_t h(iterHash64(kmers[i],hashNumber+essai*H,hashmode)%approxSet.size());
@@ -80,73 +80,7 @@ void nadine(const double gamma, const uint Count, uint H,uint expectedSizeBucket
 			}
 		}
 	}
-	
-	cout<<"set constructed"<<endl;
-	
-	//~ vector<uint> count(gamma*Nelement,0);
-	//~ for(uint i(0);i<Nelement;++i){
-		//~ for(uint hashNumber(0);hashNumber<H;++hashNumber){
-			//~ uint64_t h(iterHash64(kmers[i],hashNumber,hashmode)%count.size());
-				//~ ++count[h];
-		//~ }
-	//~ }
-	
-	//~ for(uint i(0);i<count.size();++i){
-		//~ if(count[i]>=Count){
-			//~ approxSet[i]=true;
-		//~ }
-	//~ }
-	
-	
-	uint FP(0);
-	for(uint test(0);test<Nelement;){
-		seq = randomSeq(k);
-		uint64_t kmer(getRepresent(seq2intStranded(seq),k));
-		if(set.count(kmer)==0){
-			++test;
-			uint vote(0);
-			uint setChosen(iterHash64(kmer,0,hashmode)%Buckets.size());
-			if(not finalStruct[setChosen].empty()){
-				for(uint hashNumber(0);hashNumber<H;++hashNumber){
-					
-					uint64_t h(iterHash64(kmer,hashNumber+HashUsed[setChosen],hashmode)%finalStruct[setChosen].size());
-					//~ cout<<h<<" "<<finalStruct[setChosen].size()<<endl;
-					if(finalStruct[setChosen][h]){
-						++vote;
-					}
-				}
-			}
-			if(vote==H){
-				FP++;
-			}
-		}
-	}
-	cout<<"fp estimated"<<endl;
-	
-	
-	//ESTIMATING FALSE NEGATIVE
-	uint TP(0),FN(0);
-	//~ for(uint i(0);i<Nelement;++i){
-		//~ uint64_t kmer(originalkmers[i]);
-		//~ uint vote(0);
-		//~ for(uint setNumber(0);setNumber<H;++setNumber){
-			//~ uint64_t h(iterHash64(kmer,setNumber,hashmode)%approxSet.size());
-			//~ if(approxSet[h]){
-				//~ ++vote;
-			//~ }
-		//~ }
-		//~ if(vote<P){
-			//~ ++FN;
-		//~ }
-	//~ }
-	
-	//~ uint one(0),total(0);
-	//~ for(uint i(0);i<finalSet.size();++i){
-		//~ if(finalSet[i]){
-			//~ one++;
-		//~ }
-		//~ total++;
-	//~ }
+
 	uint one(0),zero(0);
 	for(uint i(0);i<finalStruct.size();++i){
 		for(uint j(0);j<finalStruct[i].size();++j){
@@ -158,27 +92,77 @@ void nadine(const double gamma, const uint Count, uint H,uint expectedSizeBucket
 		}
 	}
 	
+	double bits((double)(one+zero)/Nelement+(double)Buckets.size()*(log2(Nessai))/Nelement);
+	double fprate((double)one/(one+zero));
 	
-	double bits((double)(one+zero)/Nelement+(double)Buckets.size()*(log2(Nessai)+3)/Nelement);
-	double fprate((double)FP/Nelement);
-	cout<<"Number try: "<<Nessai<<endl;
-	cout<<"expected bucket size: "<<expectedSizeBucket<<endl;
-	cout<<"min/max bucketsize: "<<minSizeBucket<<" "<<maxSizeBucket<<endl;
+	double coef(exp(log(fprate)/bits));
 
 	//~ cout<<(double)one/total<<endl;;
-	cout<<"H: "<<H<<endl;
-	//~ cout<<"P: "<<P<<endl;
-	//~ cout<<"Count: "<<Count<<endl;
-	cout<<"bit to 1 in the sets: "<<(double)one/(one+zero)<<endl;
-	cout<<"bit/element: "<<bits<<endl;
-	cout<<"FP rate: "<<fprate<<endl;
-	//~ cout<<FP<<" "<<Nelement<<endl;
-	cout<<"FN rate: "<<(double)FN/Nelement<<endl;
-	cout<<"coef: "<<exp(log(fprate)/bits)<<endl;
-	cout<<endl;
+	if(coef<coefMin){
+		cout<<"Number try: "<<Nessai<<endl;
+		cout<<"expected bucket size: "<<expectedSizeBucket<<endl;
+		cout<<"min/max bucketsize: "<<minSizeBucket<<" "<<maxSizeBucket<<endl;
+		//~ cout<<"H: "<<H<<endl;
+		cout<<"gamma: "<<gamma<<endl;
+		//~ cout<<"P: "<<P<<endl;
+		//~ cout<<"Count: "<<Count<<endl;
+		//~ cout<<"bit to 1 in the sets: "<<(double)one/(one+zero)<<endl;
+		cout<<"bit/element: "<<bits<<endl;
+		cout<<"FP rate: "<<fprate<<endl;
+		//~ cout<<FP<<" "<<Nelement<<endl;
+		//~ cout<<"FN rate: "<<(double)FN/Nelement<<endl;
+		cout<<"coef: "<<coef<<endl;
+		auto end=chrono::system_clock::now();auto waitedFor=end-startChrono;
+		cout<<"Time  in seconds : "<<(chrono::duration_cast<chrono::seconds>(waitedFor).count())<<endl;
+		cout<<endl;
+	}
+	return coef;
 }
 
 
+// cmdline: ./bmean [<genome.fasta	xxhash]
+int main(int argc, char ** argv){
+	srand (time(NULL));
+	double gammaMin(0.6);
+	double gammaMax(0.75);
+	uint Count(1);
+	uint lolmin(50);
+	uint lolmax(60);
+	uint H(1024*64);
+	double coefMin(0.7);
+	for(double gamma=gammaMin;gamma<=gammaMax;gamma+=0.05){
+		for(uint lol(lolmin);lol<=lolmax;lol+=10){
+			double coef=nadine(gamma,coefMin,1,lol,H);
+			coefMin=min(coef,coefMin);
+		}
+	}
+	
+	//~ cout<<"count: "<<Count<<endl;
+	//~ nadine(gamma,Count);
+	
+	//~ gamma=0.59;
+	//~ Count=2;
+	//~ nadine(gamma,Count);
+	
+		//~ gamma=0.37;
+		//~ Count=3;
+		//~ nadine(gamma,Count);
+		
+		//~ gamma=0.21;
+		//~ Count=5;
+		//~ nadine(gamma,Count);
+	
+	//~ gamma=0.103;
+	//~ Count=10;
+	//~ nadine(gamma,Count);
+	
+	//~ gamma=0.051;
+	//~ Count=20;
+	//~ nadine(gamma,Count,H);
+	
+	
+	
+	
 	
 	/*
 	//RANDOM SET CREATION
@@ -303,40 +287,6 @@ void nadine(const double gamma, const uint Count, uint H,uint expectedSizeBucket
 */
 	
 
-// cmdline: ./bmean [<genome.fasta	xxhash]
-int main(int argc, char ** argv){
-	srand (time(NULL));
-	double gamma(1);
-	uint Count(1);
-	uint lolmin(80);
-	uint lolmax(80);
-	for(uint lol(lolmin);lol<=lolmax;lol+=1){
-		nadine(gamma,Count,1,lol,255);
-	}
-	
-	//~ cout<<"count: "<<Count<<endl;
-	//~ nadine(gamma,Count);
-	
-	//~ gamma=0.59;
-	//~ Count=2;
-	//~ nadine(gamma,Count);
-	
-		//~ gamma=0.37;
-		//~ Count=3;
-		//~ nadine(gamma,Count);
-		
-		//~ gamma=0.21;
-		//~ Count=5;
-		//~ nadine(gamma,Count);
-	
-	//~ gamma=0.103;
-	//~ Count=10;
-	//~ nadine(gamma,Count);
-	
-	//~ gamma=0.051;
-	//~ Count=20;
-	//~ nadine(gamma,Count,H);
-	
 	
 	
 	
@@ -432,7 +382,7 @@ int main(int argc, char ** argv){
 		//~ cout<<test<<endl;
 		cout<<(double)(1000*FP)/(double)test<<endl;
 	}
-	/*
+
 	srand (time(NULL));
 	uint Nelement(1*100*1000);
 	vector<uint64_t> originalkmers(Nelement);

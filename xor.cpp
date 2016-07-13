@@ -86,6 +86,11 @@ uint64_t xorshift64(uint64_t x) {
 }
 
 
+uint64_t xorshift64lol(uint64_t x) {
+	return xorshift64(xorshift64(x));
+}
+
+
 
 uint64_t korenXor(uint64_t x){
 	x ^= (x << 21);
@@ -96,7 +101,7 @@ uint64_t korenXor(uint64_t x){
 
 
 uint64_t hash64( uint64_t u ){
-	return korenXor(u);
+	//~ return korenXor(u);
 	// return murmur3_32(u, 69);
 	uint64_t v = u * 3935559000370003845 + 2691343689449507681;
 
@@ -114,20 +119,21 @@ uint64_t hash64( uint64_t u ){
 
 std::hash<unsigned long long> ull_std_hasher;
 
-uint64_t iterHash64( uint64_t u , int n, int mode=0){
+uint64_t iterHash64( uint64_t u , int n, int mode=3){
     // mode = 0: 
     if(n==0){
         switch (mode){
             case 1: return XXH64(&u,8,69);
             case 2: return ull_std_hasher((unsigned long long)u); 
+            case 3: return xorshift64(u);
             default: return xorshift64(u);
         }
-    }
-    else{
+    }else{
         switch (mode){
             case 1:  return XXH64(&u,8,n);
-            case 2:  return ull_std_hasher((unsigned long long)iterHash64(u, n-1, mode)); 
-            default:		return xorshift64(iterHash64(u, n-1, mode));
+            case 2:  return ull_std_hasher((unsigned long long)iterHash64(u, n-1, mode));
+            case 3: return (n+1)*xorshift64(u)+xorshift64lol(u);
+            default:	return xorshift64(iterHash64(u, n-1, mode));
         }
 	}
 }
