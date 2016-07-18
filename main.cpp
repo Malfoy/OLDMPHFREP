@@ -9,12 +9,11 @@
 
 
 
-
 using namespace std;
 
 
 
-double nadine(const double gamma, const double coefMin, uint H,uint expectedSizeBucket,uint Nessai){
+double improvedBloomFilter(const double gamma, const double coefMin, uint H,uint expectedSizeBucket,uint Nessai){
 	auto startChrono=chrono::system_clock::now();
 	uint Nelement(1*100*1000);
 	uint minSizeBucket(Nelement);
@@ -57,6 +56,14 @@ double nadine(const double gamma, const double coefMin, uint H,uint expectedSize
 		
 		for(uint essai(1);essai<=Nessai;++essai){
 			vector<bool> approxSet(gamma*expectedSizeBucket,false);
+			//~ uint nbDiz(kmers.size()/10);
+			//~ if(nbDiz<1){
+				//~ nbDiz=1;
+			//~ }
+			//~ if(nbDiz>4){
+				//~ nbDiz=4;
+			//~ }
+			//~ vector<bool> approxSet(gamma*nbDiz*10 , false);
 			for(uint i(0);i<kmers.size();++i){
 				for(uint hashNumber(0);hashNumber<H;++hashNumber){
 					uint64_t h(iterHash64(kmers[i],hashNumber+essai*H,hashmode)%approxSet.size());
@@ -92,7 +99,7 @@ double nadine(const double gamma, const double coefMin, uint H,uint expectedSize
 		}
 	}
 	
-	double bits((double)(one+zero)/Nelement+(double)Buckets.size()*(log2(Nessai))/Nelement);
+	double bits(((double)(one+zero)+(double)Buckets.size()*(log2(Nessai)+2))/Nelement);
 	double fprate((double)one/(one+zero));
 	
 	double coef(exp(log(fprate)/bits));
@@ -120,45 +127,174 @@ double nadine(const double gamma, const double coefMin, uint H,uint expectedSize
 }
 
 
+
+double BBhash2Test(uint expectedSizeBucket,uint Nessai, double gamma, double bestRate){
+	
+	//ELEMENT GENERATION
+	auto startChrono=chrono::system_clock::now();
+	uint Nelement(1*100*1000);
+	uint minSizeBucket(Nelement);
+	uint maxSizeBucket(0);
+	vector<uint64_t> originalkmers(Nelement);
+	uint k(31);
+	int hashmode = 3;
+	string seq;
+	for(uint i(0);i<Nelement;++i){
+		seq = randomSeq(k);
+		originalkmers[i]=(getRepresent(seq2intStranded(seq),k));
+	}
+	
+	vector<uint64_t> unplaced;
+	uint bitUsed(0);
+	uint P(100);
+	uint profondeur(0);
+	
+	while(originalkmers.size()>expectedSizeBucket and profondeur<P){
+		//~ cout<<"set size: "<<originalkmers.size()<<endl;;
+		unplaced={};
+		profondeur++;
+		//~ cout<<1<<endl;
+		//BUCKETTING
+		vector<vector<uint64_t>> Buckets(originalkmers.size()/expectedSizeBucket);
+		//~ cout<<Buckets.size()<<endl;
+		vector<vector<bool>> finalStruct(Buckets.size());
+		vector<uint> HashUsed(Buckets.size());
+	
+		for(uint i(0);i<originalkmers.size();++i){
+			uint64_t h(iterHash64(originalkmers[i],P*Nessai,hashmode)%Buckets.size());
+			Buckets[h].push_back(originalkmers[i]);
+		}
+		
+		//GESTION OF EACH BUCKET
+		for(uint subSetNumber(0);subSetNumber<Buckets.size();++subSetNumber){
+			//~ cout<<2<<endl;
+			vector<bool>best;
+			uint hashused(0);
+			uint bestscore(0);
+			vector<uint64_t> kmers=Buckets[subSetNumber];
+			//~ cout<<kmers.size()<<endl;
+			//TEST FOR DIFF HASH FONCTION
+			for(uint essai(1);essai<=Nessai;++essai){
+				//~ cout<<3<<endl;
+				vector<bool> approxSet(gamma*expectedSizeBucket,false);
+				vector<bool> collision(gamma*expectedSizeBucket,false);
+				for(uint i(0);i<kmers.size();++i){
+					//~ cout<<4<<endl;
+					uint64_t h(iterHash64(kmers[i],essai+P*Nessai,hashmode)%(uint)(gamma*expectedSizeBucket));
+					if(approxSet[h] and not collision[h]){
+						approxSet[h]=false;
+						collision[h]=true;
+					}
+					if(not approxSet[h] and not collision[h]){
+						approxSet[h]=true;
+					}
+				}
+				uint score(0);
+				for(uint i(0);i<approxSet.size();++i){
+					if(approxSet[i]){
+						score++;
+					}
+				}
+				if(score>=bestscore){
+					bestscore=score;
+					best=approxSet;
+					hashused=essai;
+				}
+			}
+			
+			finalStruct[subSetNumber]=best;
+			HashUsed[subSetNumber]=hashused;
+			for(uint i(0);i<kmers.size();++i){
+				//~ cout<<5<<endl;
+				uint64_t h(iterHash64(kmers[i],hashused+P*Nessai,hashmode)%(uint)(gamma*expectedSizeBucket));
+				if(not finalStruct[subSetNumber][h]){
+					unplaced.push_back(kmers[i]);
+				}
+			}
+		}
+		
+		
+		bitUsed+=gamma*originalkmers.size();
+		//~ cout<<"rate place: "<<(double)unplaced.size()/originalkmers.size()<<endl;
+		originalkmers=unplaced;
+		bitUsed+=Buckets.size()*log2(Nessai);
+	}
+	
+	if((double)bitUsed/Nelement<bestRate){
+		cout<<"expectedSizeBucket: "<<expectedSizeBucket<<endl;
+		cout<<"Nessai: "<<Nessai<<endl;
+		cout<<"gamma: "<<gamma<<endl;
+		cout<<"bitUsed: "<<bitUsed<<endl;
+		cout<<"not placed elements "<<unplaced.size()<<endl;
+		cout<<"bits/element : "<<(double)bitUsed/Nelement<<endl<<endl;
+	}
+	return (double)bitUsed/Nelement;
+	
+}
+
+
 // cmdline: ./bmean [<genome.fasta	xxhash]
 int main(int argc, char ** argv){
 	srand (time(NULL));
-	double gammaMin(0.6);
-	double gammaMax(0.75);
-	uint Count(1);
-	uint lolmin(50);
-	uint lolmax(60);
-	uint H(1024*64);
-	double coefMin(0.7);
-	for(double gamma=gammaMin;gamma<=gammaMax;gamma+=0.05){
-		for(uint lol(lolmin);lol<=lolmax;lol+=10){
-			double coef=nadine(gamma,coefMin,1,lol,H);
-			coefMin=min(coef,coefMin);
+	double gamma(1);
+	double bestRate(3),rate;
+	uint expectedSizeBucket(100),Nessai(1);
+	
+	for(uint expectedSizeBucket(30);expectedSizeBucket<=30;expectedSizeBucket+=10){
+		for(uint Nessai(1024);Nessai<=1024;Nessai*=2){
+			rate=BBhash2Test( expectedSizeBucket, Nessai,  gamma, bestRate);
+			if(rate<bestRate){
+				bestRate=rate;
+			}
 		}
 	}
+
+	//TEST IBF
+	//~ double gammaMin(0.5);
+	//~ double gammaMax(1.5);
+	//~ uint Count(1);
+	//~ uint lolmin(30);
+	//~ uint lolmax(30);
+	//~ uint H(256);
+	//~ double coefMin(0.7);
+	//~ for(double gamma=gammaMin;gamma<=gammaMax;gamma+=0.05){
+		//~ for(uint lol(lolmin);lol<=lolmax;lol+=10){
+			//~ double coef=improvedBloomFilter(gamma,coefMin,1,lol,H);
+			//~ coefMin=min(coef,coefMin);
+		//~ }
+	//~ }
 	
-	//~ cout<<"count: "<<Count<<endl;
-	//~ nadine(gamma,Count);
 	
-	//~ gamma=0.59;
-	//~ Count=2;
-	//~ nadine(gamma,Count);
 	
-		//~ gamma=0.37;
-		//~ Count=3;
-		//~ nadine(gamma,Count);
-		
-		//~ gamma=0.21;
-		//~ Count=5;
-		//~ nadine(gamma,Count);
 	
-	//~ gamma=0.103;
-	//~ Count=10;
-	//~ nadine(gamma,Count);
 	
-	//~ gamma=0.051;
-	//~ Count=20;
-	//~ nadine(gamma,Count,H);
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 	
 	

@@ -96,7 +96,7 @@ uint64_t korenXor(uint64_t x){
 	x ^= (x << 21);
 	x ^= (x >> 35);
 	x ^= (x << 4);
-	return x;
+	return x * UINT64_C(2685821657736338717);
 }
 
 
@@ -123,16 +123,18 @@ uint64_t iterHash64( uint64_t u , int n, int mode=3){
     // mode = 0: 
     if(n==0){
         switch (mode){
-            case 1: return XXH64(&u,8,69);
+            case 1: return XXH64(&u,8,1);
             case 2: return ull_std_hasher((unsigned long long)u); 
-            case 3: return xorshift64(u);
+            case 3: return (n+1)*xorshift64(u)+korenXor(u);
+            //~ case 3: return (n+1)*XXH64(&u,8,69)+XXH64(&u,8,96);
             default: return xorshift64(u);
         }
     }else{
         switch (mode){
-            case 1:  return XXH64(&u,8,n);
+            case 1:  return XXH64(&u,8,n+1);
             case 2:  return ull_std_hasher((unsigned long long)iterHash64(u, n-1, mode));
-            case 3: return (n+1)*xorshift64(u)+xorshift64lol(u);
+            case 3: return (n+1)*xorshift64(u)+korenXor(u);
+            //~ case 3: return (n+1)*XXH64(&u,8,69)+XXH64(&u,8,96);
             default:	return xorshift64(iterHash64(u, n-1, mode));
         }
 	}
